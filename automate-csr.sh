@@ -46,8 +46,9 @@ for hoststr in $HOSTS; do
 		fi
 	done
 	if [ -f ${fqdn[0]}.key ]; then
-		openssl req -new -config <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nextendedKeyUsage=serverAuth,clientAuth\nsubjectAltName=${subjAltName}")) -extensions SAN -reqexts SAN -out ${fqdn[0]}.csr -subj "$subjTmpl${host[0]}/" -nodes -key ${fqdn[0]}.key
+		key_args="-key ${fqdn[0]}.key"
 	else
-		openssl req -new -config <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nextendedKeyUsage=serverAuth,clientAuth\nsubjectAltName=${subjAltName}")) -extensions SAN -reqexts SAN -out ${fqdn[0]}.csr -subj "$subjTmpl${host[0]}/" -nodes -newkey rsa:${keysize} -keyout ${fqdn[0]}.key
+		key_args="-newkey rsa:${keysize} -keyout ${fqdn[0]}.key"
 	fi
+	openssl req -new -config <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nextendedKeyUsage=serverAuth,clientAuth\nsubjectAltName=${subjAltName}")) -extensions SAN -reqexts SAN -out ${fqdn[0]}.csr -subj "$subjTmpl${host[0]}/" -nodes ${key_args}
 done
