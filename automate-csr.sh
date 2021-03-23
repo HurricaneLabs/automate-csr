@@ -33,16 +33,21 @@ fi
 for hoststr in $HOSTS; do
 	IFS=: read -ra host <<<"$hoststr"
 	IFS=. read -ra fqdn <<<"${host[0]}"
-        IFS=, read -ra aliases <<<"${host[2]}"
+        read -ra aliases <<<"${host[2]}"
 	echo "### ${fqdn[0]}"
 	subjAltName="DNS:${host[0]},DNS:${fqdn[0]},IP:${host[1]}"
+        IFS=","
 	for alias in $aliases; do
 		echo "$alias" | egrep -q '^[0-9.]+$'
 		if [ "$?" -eq "0" ]; then
-			subjAltName="${subjAltName},IP:${alias}"
+			IFS=" " subjAltName="${subjAltName},IP:${alias}"
 		else
-			subjAltName="${subjAltName},DNS:${alias}"
+			IFS=" " subjAltName="${subjAltName},DNS:${alias}"
 		fi
 	done
-	openssl req -new -config <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nextendedKeyUsage=serverAuth,clientAuth\nsubjectAltName=${subjAltName}")) -extensions SAN -reqexts SAN -out ${fqdn[0]}.csr -subj "$subjTmpl${host[0]}/" -nodes -newkey rsa:${keysize} -keyout ${fqdn[0]}.key
+	if [ -f ${fqdn[0]}.key ]; then
+		openssl req -new -config <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nextendedKeyUsage=serverAuth,clientAuth\nsubjectAltName=${subjAltName}")) -extensions SAN -reqexts SAN -out ${fqdn[0]}.csr -subj "$subjTmpl${host[0]}/" -nodes -key ${fqdn[0]}.key
+	else
+		openssl req -new -config <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nextendedKeyUsage=serverAuth,clientAuth\nsubjectAltName=${subjAltName}")) -extensions SAN -reqexts SAN -out ${fqdn[0]}.csr -subj "$subjTmpl${host[0]}/" -nodes -newkey rsa:${keysize} -keyout ${fqdn[0]}.key
+	fi
 done
